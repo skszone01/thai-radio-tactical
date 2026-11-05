@@ -74,7 +74,7 @@
       <div class="module-header">
         <div>
           <h1 id="heading-directory" class="module-title">ทำเนียบรหัส ว. วิทยุสื่อสาร</h1>
-          <p class="module-subtitle">คู่มืออ้างอิงรหัส ว. มาตรฐานราชการ ตำรวจ กู้ภัย และประชาชน พร้อมตัวอย่างประโยคถาม-ตอบและเสียงสังเคราะห์วิทยุ</p>
+          <p class="module-subtitle">คู่มืออ้างอิงรหัส ว. มาตรฐานราชการ ตำรวจ กู้ภัย และรหัสยุทธวิธีทหาร/ตชด. พื้นที่ชายแดน พร้อมตัวอย่างประโยคถาม-ตอบและเสียงสังเคราะห์วิทยุ</p>
         </div>
         <div class="module-quick-stats">
           <div class="stat-chip">
@@ -104,7 +104,7 @@
               type="search"
               id="codeSearchInput"
               class="search-input"
-              placeholder="ค้นหารหัส (เช่น ว.2, 40, 61) หรือความหมาย (เช่น อุบัติเหตุ, ความลับ, ถึงที่หมาย) [กด /]"
+              placeholder="ค้นหารหัส (เช่น ว.2, ท.05, ท.09, 40) หรือความหมาย (เช่น พิกัด MGRS, ปะทะ, ส่งกลับสายแพทย์, ความลับ) [กด /]"
               autocomplete="off"
             >
             <button type="button" id="clearSearchBtn" class="search-clear-btn" hidden>ล้างคำค้น</button>
@@ -113,7 +113,7 @@
           <div class="sub-mode-tabs" role="tablist" aria-label="หมวดตารางอ้างอิง">
             <button type="button" class="sub-mode-btn active" data-subview="codes">รหัส ว. ทั้งหมด</button>
             <button type="button" class="sub-mode-btn" data-subview="wo16">ความชัดเจน ว.16 (1-5)</button>
-            <button type="button" class="sub-mode-btn" data-subview="phonetic">ขานอักษร ก-ฮ</button>
+            <button type="button" class="sub-mode-btn" data-subview="phonetic">ขานอักษร ก-ฮ / NATO</button>
           </div>
         </div>
 
@@ -206,6 +206,11 @@
           <p class="section-subtext">ใช้เมื่อต้องแจ้งหมวดอักษรป้ายทะเบียนรถ ชื่อบุคคล หรือรหัสประจำตัว เพื่อป้องกันเสียงพยัญชนะกลืนกันในคลื่นวิทยุ</p>
         </div>
         <div id="phoneticGridContainer" class="phonetic-grid"></div>
+        <div class="section-subbar phonetic-nato-subbar">
+          <h2 class="section-heading">รหัสขานอักษรสากลทางทหาร NATO (Alpha - Zulu) และตัวเลขยุทธวิธี</h2>
+          <p class="section-subtext">ใช้สำหรับเจ้าหน้าที่พื้นที่ชายแดน ทหาร และ ตชด. ในการขานพิกัดแผนที่ทหาร (MGRS) นามเรียกขานสากล และรหัสยุทธวิธีในสนาม</p>
+        </div>
+        <div id="natoPhoneticGridContainer" class="phonetic-grid"></div>
       </div>
     </section>
 
@@ -279,7 +284,7 @@
               <option value="สายตรวจ 104">สายตรวจ 104</option>
               <option value="ศูนย์สั่งการ">ศูนย์สั่งการ</option>
               <option value="กู้ภัย 102">กู้ภัย 102</option>
-              <option value="ชุดเคลื่อนที่เร็ว 01">ชุดเคลื่อนที่เร็ว 01</option>
+              <option value="ชุดเคลื่อนที่เร็ว 105">ชุดเคลื่อนที่เร็ว 105</option>
             </select>
           </div>
           <div class="form-field">

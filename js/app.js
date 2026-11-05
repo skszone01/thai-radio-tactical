@@ -44,7 +44,7 @@
       currentStreak: 0,
       bestTimedScore: 0,
       bestAvgReactionMs: 0,
-      levelBest: { 1: 0, 2: 0, 3: 0, 4: 0 }
+      levelBest: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }
     },
 
     // Timed Reflex Trainer state
@@ -99,7 +99,7 @@
       const savedStats = JSON.parse(localStorage.getItem(STORAGE_KEYS.stats) || 'null');
       if (savedStats && typeof savedStats === 'object') {
         state.stats = Object.assign(state.stats, savedStats);
-        state.stats.levelBest = Object.assign({ 1: 0, 2: 0, 3: 0, 4: 0 }, savedStats.levelBest || {});
+        state.stats.levelBest = Object.assign({ 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }, savedStats.levelBest || {});
       }
     } catch (e) {
       // Fallback silently if storage is restricted
@@ -223,6 +223,7 @@
     if (catId === 'all') return codes.length;
     if (catId === 'core') return codes.filter(c => c.isCore).length;
     if (catId === 'bookmarked') return state.bookmarks.size;
+    if (catId === 'military') return codes.filter(c => c.category === 'military' || c.isMilitary === true).length;
     return codes.filter(c => c.category === catId).length;
   }
 
@@ -255,6 +256,9 @@
         }
         renderCategoryPills();
         renderCodeTable();
+        if (state.selectedCategory === 'military' && !String(state.selectedCode).startsWith('ท.')) {
+          selectCodeForInspector('ท.01', false);
+        }
       });
     });
   }
@@ -262,25 +266,44 @@
   function getFilteredCodes() {
     const codes = Array.isArray(window.WO_CODES) ? window.WO_CODES : [];
     const q = state.searchQuery.trim().toLowerCase();
-    return codes.filter(item => {
+    const list = codes.filter(item => {
       if (state.selectedCategory === 'core' && !item.isCore) return false;
       if (state.selectedCategory === 'bookmarked' && !state.bookmarks.has(item.code)) return false;
+      if (state.selectedCategory === 'military' && !(item.category === 'military' || item.isMilitary === true)) return false;
       if (
         state.selectedCategory !== 'all' &&
         state.selectedCategory !== 'core' &&
         state.selectedCategory !== 'bookmarked' &&
+        state.selectedCategory !== 'military' &&
         item.category !== state.selectedCategory
       ) {
         return false;
       }
 
       if (!q) return true;
-      const cleanQ = q.replace(/^ว\.?/, '');
-      const codeMatch = item.code.toLowerCase().includes(q) || item.num.toLowerCase() === cleanQ;
+      const cleanQ = q.replace(/^(?:ว|ท)\.?/, '');
+      const codeMatch =
+        item.code.toLowerCase().includes(q) ||
+        item.num.toLowerCase() === cleanQ ||
+        (/^\d+$/.test(cleanQ) && item.num.toLowerCase() === cleanQ.padStart(2, '0'));
       const meaningMatch = item.meaning.toLowerCase().includes(q) || item.shortMeaning.toLowerCase().includes(q);
-      const contextMatch = item.context.toLowerCase().includes(q) || item.exampleCall.toLowerCase().includes(q);
+      const contextMatch =
+        item.context.toLowerCase().includes(q) ||
+        item.exampleCall.toLowerCase().includes(q) ||
+        (item.exampleReply && item.exampleReply.toLowerCase().includes(q)) ||
+        (item.confusionNote && item.confusionNote.toLowerCase().includes(q));
       return codeMatch || meaningMatch || contextMatch;
     });
+
+    if (state.selectedCategory === 'military') {
+      list.sort((a, b) => {
+        const aMil = a.category === 'military' ? 0 : 1;
+        const bMil = b.category === 'military' ? 0 : 1;
+        return aMil - bMil;
+      });
+    }
+
+    return list;
   }
 
   function renderCodeTable() {
@@ -541,39 +564,47 @@
   }
 
   function renderPhoneticGrid() {
-    const container = document.getElementById('phoneticGridContainer');
-    if (!container) return;
-
-    const list = Array.isArray(window.THAI_PHONETIC_ALPHABET) ? window.THAI_PHONETIC_ALPHABET : [];
-    container.innerHTML = list.map(item => {
-      const safeWord = escapeHtml(item.word);
-      return `
-        <div class="phonetic-cell">
-          <div class="u-flex-between">
-            <span class="phonetic-char">${escapeHtml(item.char)}</span>
-            <div>
-              <div class="code-meaning-main">${safeWord}</div>
-              <div class="code-meaning-sub">${escapeHtml(item.example)}</div>
+    const renderCards = (targetEl, list) => {
+      if (!targetEl) return;
+      const items = Array.isArray(list) ? list : [];
+      targetEl.innerHTML = items.map(item => {
+        const safeWord = escapeHtml(item.word);
+        return `
+          <div class="phonetic-cell">
+            <div class="u-flex-between">
+              <span class="phonetic-char">${escapeHtml(item.char)}</span>
+              <div>
+                <div class="code-meaning-main">${safeWord}</div>
+                <div class="code-meaning-sub">${escapeHtml(item.example)}</div>
+              </div>
             </div>
+            <button type="button" class="row-icon-btn speak-phonetic-btn" data-word="${safeWord}" title="ฟังเสียงขาน ${safeWord}" aria-label="ฟังเสียงขาน ${safeWord}">
+              <span class="mono">TX</span>
+            </button>
           </div>
-          <button type="button" class="row-icon-btn speak-phonetic-btn" data-word="${safeWord}" title="ฟังเสียงขาน ${safeWord}">
-            <span class="mono">TX</span>
-          </button>
-        </div>
-      `;
-    }).join('');
+        `;
+      }).join('');
 
-    container.querySelectorAll('.speak-phonetic-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const word = btn.getAttribute('data-word') || '';
-        if (!window.radioAudio) return;
-        window.radioAudio.speakTransmission(
-          `รหัสขานอักษร ${word}`,
-          () => setTxStatus(true, 'CH-01 · TX PHONETIC'),
-          () => setTxStatus(false)
-        );
+      targetEl.querySelectorAll('.speak-phonetic-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const word = btn.getAttribute('data-word') || '';
+          if (!window.radioAudio) return;
+          window.radioAudio.speakTransmission(
+            `รหัสขานอักษร ${word}`,
+            () => setTxStatus(true, 'CH-01 · TX PHONETIC'),
+            () => setTxStatus(false)
+          );
+        });
       });
-    });
+    };
+
+    const thaiContainer = document.getElementById('phoneticGridContainer');
+    renderCards(thaiContainer, window.THAI_PHONETIC_ALPHABET);
+
+    const natoContainer = document.getElementById('natoPhoneticGridContainer');
+    if (natoContainer) {
+      renderCards(natoContainer, window.NATO_PHONETIC_ALPHABET);
+    }
   }
 
   /* ========================================================================
@@ -584,9 +615,8 @@
     const slotMap = {};
     let slotIndex = 0;
     const raw = String(text == null ? '' : text);
-    const regex = /(ว\.\d+)/g;
-    let match;
-    while ((match = regex.exec(raw)) !== null) {
+    const matches = raw.matchAll(/((?:ว|ท)\.\d+)/g);
+    for (const match of matches) {
       const code = match[1];
       if (!Object.prototype.hasOwnProperty.call(slotMap, code)) {
         slotMap[code] = 'wo-slot-' + (slotIndex % 5);
@@ -599,7 +629,7 @@
   function highlightWoCodesInline(text, slotMap) {
     const codes = Array.isArray(window.WO_CODES) ? window.WO_CODES : [];
     const activeMap = slotMap || buildColorMapForText(text);
-    return escapeHtml(text).replace(/(ว\.\d+)/g, (match) => {
+    return escapeHtml(text).replace(/((?:ว|ท)\.\d+)/g, (match) => {
       const codeObj = codes.find(c => c.code === match);
       const titleAttr = codeObj ? `${codeObj.code} : ${codeObj.shortMeaning}` : match;
       const slotClass = activeMap[match] || 'wo-slot-0';
@@ -612,14 +642,14 @@
     const codes = Array.isArray(window.WO_CODES) ? window.WO_CODES : [];
     const raw = String(radioText == null ? '' : radioText);
     const activeMap = slotMap || buildColorMapForText(raw);
-    const regex = /(ว\.\d+)/g;
+    const matches = raw.matchAll(/((?:ว|ท)\.\d+)/g);
     let lastIndex = 0;
     let result = '';
-    let match;
 
-    while ((match = regex.exec(raw)) !== null) {
-      if (match.index > lastIndex) {
-        result += escapeHtml(raw.slice(lastIndex, match.index));
+    for (const match of matches) {
+      const matchIdx = match.index || 0;
+      if (matchIdx > lastIndex) {
+        result += escapeHtml(raw.slice(lastIndex, matchIdx));
       }
       const code = match[1];
       const codeObj = codes.find(c => c.code === code);
@@ -628,7 +658,7 @@
       const safeCode = escapeHtml(code);
       const safeMeaning = escapeHtml(meaningText);
       result += `<button type="button" class="inline-meaning-tag ${slotClass}" data-inline-code="${safeCode}" title="คลิกเพื่อดูรายละเอียด ${safeCode}"><span class="inline-meaning-code">${safeCode}</span><span>${safeMeaning}</span></button>`;
-      lastIndex = regex.lastIndex;
+      lastIndex = matchIdx + match[0].length;
     }
 
     if (lastIndex < raw.length) {
@@ -646,14 +676,14 @@
       return radioText ? autoDecodeRadioSentence(radioText, activeMap) : escapeHtml(rawPlain);
     }
 
-    const tokenRegex = /\{\{(ว\.\d+)\|([^}]+)\}\}/g;
+    const matches = rawPlain.matchAll(/\{\{((?:ว|ท)\.\d+)\|([^}]+)\}\}/g);
     let lastIndex = 0;
     let result = '';
-    let match;
 
-    while ((match = tokenRegex.exec(rawPlain)) !== null) {
-      if (match.index > lastIndex) {
-        result += escapeHtml(rawPlain.slice(lastIndex, match.index));
+    for (const match of matches) {
+      const matchIdx = match.index || 0;
+      if (matchIdx > lastIndex) {
+        result += escapeHtml(rawPlain.slice(lastIndex, matchIdx));
       }
       const code = match[1];
       const meaning = match[2];
@@ -665,7 +695,7 @@
       const safeCode = escapeHtml(code);
       const safeMeaning = escapeHtml(meaning);
       result += `<button type="button" class="inline-meaning-tag ${slotClass}" data-inline-code="${safeCode}" title="คลิกเพื่อดูรายละเอียด ${safeCode}"><span class="inline-meaning-code">${safeCode}</span><span>${safeMeaning}</span></button>`;
-      lastIndex = tokenRegex.lastIndex;
+      lastIndex = matchIdx + match[0].length;
     }
 
     if (lastIndex < rawPlain.length) {
@@ -883,7 +913,52 @@
     renderActiveScenarioStage();
   }
 
+  function initComposerMilitaryOptions() {
+    const recEl = document.getElementById('compReceiver');
+    const sndEl = document.getElementById('compSender');
+    const tplEl = document.getElementById('compTemplate');
+
+    const appendOpts = (selectEl, items) => {
+      if (!selectEl || selectEl.dataset.milInit === '1') return;
+      selectEl.dataset.milInit = '1';
+      items.forEach(([val, label]) => {
+        const opt = document.createElement('option');
+        opt.value = val;
+        opt.textContent = label;
+        selectEl.appendChild(opt);
+      });
+    };
+
+    appendOpts(recEl, [
+      ['บก.ควบคุม ชายแดน', 'บก.ควบคุม ชายแดน (แม่ข่ายทหาร/ตชด.)'],
+      ['ชุด ลว. ไกล 01', 'ชุด ลว. ไกล 01 (ลาดตระเวนชายแดน)'],
+      ['ฐานปฏิบัติการหน้าแนว', 'ฐานปฏิบัติการหน้าแนว']
+    ]);
+
+    appendOpts(sndEl, [
+      ['ชุด ลว. ไกล 01', 'ชุด ลว. ไกล 01'],
+      ['ร้อย ตชด. ชายแดน', 'ร้อย ตชด. ชายแดน'],
+      ['ชป.ชายแดน 03', 'ชป.ชายแดน 03']
+    ]);
+
+    appendOpts(tplEl, [
+      [
+        'แจ้ง ท.07 ตรวจพบกลุ่มติดอาวุธไม่ทราบฝ่าย ว.30 ประมาณ 6 นาย บริเวณ ท.05 พิกัด 47P QQ 123 456 ส่งรายละเอียดแบบ ท.06 ด้วยระบบ ว.621',
+        'ชายแดน : รายงานตรวจพบเป้าหมาย ท.06 และพิกัด MGRS ท.05'
+      ],
+      [
+        'แจ้งข่าวด่วน ท.16 ว.9 เกิดเหตุ ท.09 ปะทะที่ ท.05 พิกัด 47P QQ 248 510 มีกำลังพลบาดเจ็บจาก ท.12 ว.30 จำนวน 1 ราย ขอ ท.10 ยิงคุ้มกันและขอ ฮ. ท.11 ด่วน',
+        'ชายแดน : แจ้งปะทะด่วน ท.09 เตือนทุ่นระเบิด ท.12 และขอ MEDEVAC ท.11'
+      ],
+      [
+        'พบอาการ ว.609 ในช่องหลัก ขอพิสูจน์ตัวตน ท.14 ด้วย ว.621 แล้วสลับ ว.602 ไปช่องสำรอง ว.32 พร้อมรักษาวินัย ท.13',
+        'ชายแดน : ต้านคลื่นรบกวน ท.14 ย้ายช่อง ว.32 และเงียบวิทยุ ท.13'
+      ]
+    ]);
+  }
+
   function updateComposerOutput() {
+    initComposerMilitaryOptions();
     const recEl = document.getElementById('compReceiver');
     const sndEl = document.getElementById('compSender');
     const tplEl = document.getElementById('compTemplate');
@@ -995,15 +1070,50 @@
       });
     }
 
-    // Level 4 : Decoder + Multi-code
-    const decoderDrills = Array.isArray(window.DECODER_DRILL_QUESTIONS) ? window.DECODER_DRILL_QUESTIONS : [];
-    const decItems = shuffleArray(decoderDrills).map(dec => {
+    if (levelId === 4) {
+      // Level 4 : Decoder + Multi-code
+      const decoderDrills = Array.isArray(window.DECODER_DRILL_QUESTIONS) ? window.DECODER_DRILL_QUESTIONS : [];
+      const decItems = shuffleArray(decoderDrills).map(dec => {
+        const optionObjects = dec.options.map((text, idx) => ({ text, isCorrect: idx === dec.correctIndex }));
+        const shuffledOptions = shuffleArray(optionObjects);
+        return {
+          type: 'decoder',
+          code: dec.targetCode,
+          contextTag: 'ถอดรหัสข้อความวิทยุหลายรหัสซ้อน',
+          incomingText: dec.transmission,
+          prompt: state.drillInputMode === 'typein' ? dec.targetPrompt : dec.question,
+          options: shuffledOptions.map(o => o.text),
+          correctIndex: shuffledOptions.findIndex(o => o.isCorrect),
+          expectedCode: dec.targetCode,
+          explanation: dec.explanation
+        };
+      });
+
+      // เติมให้ครบ 10 ข้อด้วยรหัสระดับปฏิบัติการ
+      const extraPool = shuffleArray(allCodes.filter(c => !c.isCore)).slice(0, Math.max(0, 10 - decItems.length));
+      const extraQuestions = extraPool.map(item => createCodeDrillQuestion(item, allCodes, false));
+      return [...decItems, ...extraQuestions].slice(0, 10);
+    }
+
+    // Level 5 : Military & Border Patrol Tactical Ops (ทหาร/ชายแดน)
+    const milPoolRaw = allCodes.filter(c => c.category === 'military' || c.isMilitary === true);
+    const milCodePool = milPoolRaw.length > 0 ? milPoolRaw : allCodes;
+
+    const allScenarios = Array.isArray(window.SCENARIO_DRILL_QUESTIONS) ? window.SCENARIO_DRILL_QUESTIONS : [];
+    const milScenariosRaw = allScenarios.filter(s => s.isMilitary);
+    const milScenarioPool = milScenariosRaw.length >= 3 ? milScenariosRaw : allScenarios;
+
+    const allDecoders = Array.isArray(window.DECODER_DRILL_QUESTIONS) ? window.DECODER_DRILL_QUESTIONS : [];
+    const milDecodersRaw = allDecoders.filter(d => d.isMilitary);
+    const milDecoderPool = milDecodersRaw.length >= 3 ? milDecodersRaw : allDecoders;
+
+    const mapDecoderQuestion = (dec) => {
       const optionObjects = dec.options.map((text, idx) => ({ text, isCorrect: idx === dec.correctIndex }));
       const shuffledOptions = shuffleArray(optionObjects);
       return {
         type: 'decoder',
         code: dec.targetCode,
-        contextTag: 'ถอดรหัสข้อความวิทยุหลายรหัสซ้อน',
+        contextTag: 'ถอดรหัสยุทธวิธีทหาร/ชายแดน',
         incomingText: dec.transmission,
         prompt: state.drillInputMode === 'typein' ? dec.targetPrompt : dec.question,
         options: shuffledOptions.map(o => o.text),
@@ -1011,12 +1121,35 @@
         expectedCode: dec.targetCode,
         explanation: dec.explanation
       };
-    });
+    };
 
-    // เติมให้ครบ 10 ข้อด้วยรหัสระดับปฏิบัติการ
-    const extraPool = shuffleArray(allCodes.filter(c => !c.isCore)).slice(0, Math.max(0, 10 - decItems.length));
-    const extraQuestions = extraPool.map(item => createCodeDrillQuestion(item, allCodes, false));
-    return [...decItems, ...extraQuestions].slice(0, 10);
+    const mapScenarioQuestion = (sc) => {
+      const optionObjects = sc.options.map((text, idx) => ({ text, isCorrect: idx === sc.correctIndex }));
+      const shuffledOptions = shuffleArray(optionObjects);
+      return {
+        type: 'scenario',
+        code: sc.focusCode,
+        contextTag: `สายเรียกเข้ายุทธวิธี : ${sc.caller}`,
+        incomingText: sc.incoming,
+        prompt: sc.prompt,
+        options: shuffledOptions.map(o => o.text),
+        correctIndex: shuffledOptions.findIndex(o => o.isCorrect),
+        expectedCode: sc.focusCode,
+        explanation: sc.explanation
+      };
+    };
+
+    if (state.drillInputMode === 'typein') {
+      const decPart = shuffleArray(milDecoderPool).slice(0, 3).map(mapDecoderQuestion);
+      const codeNeed = Math.max(0, 10 - decPart.length);
+      const codePart = shuffleArray(milCodePool).slice(0, codeNeed).map(item => createCodeDrillQuestion(item, milCodePool, false));
+      return shuffleArray([...codePart, ...decPart]).slice(0, 10);
+    }
+
+    const codeQuestions = shuffleArray(milCodePool).slice(0, 4).map((item, idx) => createCodeDrillQuestion(item, milCodePool, idx % 2 === 0));
+    const scenarioQuestions = shuffleArray(milScenarioPool).slice(0, 3).map(mapScenarioQuestion);
+    const decoderQuestions = shuffleArray(milDecoderPool).slice(0, 3).map(mapDecoderQuestion);
+    return [...codeQuestions, ...scenarioQuestions, ...decoderQuestions].slice(0, 10);
   }
 
   function createCodeDrillQuestion(item, pool, askMeaningFromCode = true) {
@@ -1049,7 +1182,7 @@
         code: item.code,
         contextTag: `หมวด : ${item.categoryLabel}`,
         incomingText: '',
-        prompt: `หากต้องการสื่อสารความหมายว่า "${item.meaning}" ต้องใช้รหัส ว. ใด?`,
+        prompt: `หากต้องการสื่อสารความหมายว่า "${item.meaning}" ต้องใช้รหัสใด?`,
         options: shuffled.map(o => state.drillLevel === 1 ? o.text : o.codeOnly),
         correctIndex: shuffled.findIndex(o => o.isCorrect),
         expectedCode: item.code,
@@ -1168,7 +1301,7 @@
             type="text"
             id="drillTypeinInput"
             class="typein-input"
-            placeholder="พิมพ์รหัส ว. เช่น ว.40 หรือ 40 แล้วกด Enter"
+            placeholder="พิมพ์รหัส เช่น ว.40, ท.05 หรือ 40 แล้วกด Enter"
             required
           >
           <button type="button" id="drillTypeinSubmitBtn" class="ptt-action-btn btn-auto">
@@ -1236,6 +1369,10 @@
 
   function normalizeWoCodeInput(inputStr) {
     const clean = String(inputStr).trim().replace(/\s+/g, '');
+    if (/^(?:ท|t|T)\.?\d+$/.test(clean)) {
+      const num = clean.replace(/^(?:ท|t|T)\.?/, '');
+      return 'ท.' + num.padStart(2, '0');
+    }
     if (/^\d+$/.test(clean)) {
       return 'ว.' + clean;
     }
@@ -1251,7 +1388,16 @@
     if (!q) return;
     state.drillAnswered = true;
 
-    const normalizedUser = normalizeWoCodeInput(rawInput);
+    const cleanDigits = String(rawInput).trim().replace(/\s+/g, '');
+    let normalizedUser = normalizeWoCodeInput(rawInput);
+    if (
+      q.expectedCode &&
+      q.expectedCode.startsWith('ท.') &&
+      /^\d+$/.test(cleanDigits) &&
+      'ท.' + cleanDigits.padStart(2, '0') === q.expectedCode
+    ) {
+      normalizedUser = 'ท.' + cleanDigits.padStart(2, '0');
+    }
     const isCorrect = normalizedUser === q.expectedCode;
 
     const inputEl = document.getElementById('drillTypeinInput');
@@ -1380,7 +1526,7 @@
           <button type="button" id="summaryRetryBtn" class="ptt-action-btn btn-auto">
             <span>ฝึกซ้ำระดับนี้อีกครั้ง</span>
           </button>
-          ${state.drillLevel < 4 ? `
+          ${state.drillLevel < 5 ? `
             <button type="button" id="summaryNextLevelBtn" class="secondary-action-btn btn-auto">
               <span>ไปต่อระดับที่ ${state.drillLevel + 1}</span>
             </button>
@@ -1400,7 +1546,7 @@
     if (nextLvlBtn) {
       nextLvlBtn.addEventListener('click', () => {
         state.drillWeakOnly = false;
-        state.drillLevel = Math.min(4, state.drillLevel + 1);
+        state.drillLevel = Math.min(5, state.drillLevel + 1);
         startDrillSession();
       });
     }
