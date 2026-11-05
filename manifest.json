@@ -1,0 +1,17 @@
+{
+  "name": "ว.TACTICAL ระบบฝึกปฏิบัติการรหัสวิทยุสื่อสาร",
+  "short_name": "ว.TACTICAL",
+  "description": "ระบบคู่มือและฝึกทักษะรหัส ว. วิทยุสื่อสาร ตัวอย่างการสนทนา แบบฝึกหัดหลายระดับ และระบบจับเวลาตอบสนอง",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "oklch(1.000 0.000 0)",
+  "theme_color": "oklch(0.300 0.071 120.0)",
+  "icons": [
+    {
+      "src": "./favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

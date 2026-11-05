@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="th" data-theme="day">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="description" content="ว.TACTICAL ระบบคู่มือและฝึกทักษะการใช้รหัส ว. วิทยุสื่อสาร รวมคำสั่งวอครบทุกหมวด ตัวอย่างการสนทนาวิทยุ แบบฝึกหัดหลายระดับ และระบบจับเวลาตอบสนอง">
+  <meta name="theme-color" content="oklch(0.300 0.071 120.0)">
+  <title>ว.TACTICAL | ระบบฝึกปฏิบัติการรหัส ว. วิทยุสื่อสาร</title>
+  <link rel="icon" type="image/svg+xml" href="./favicon.svg">
+  <link rel="manifest" href="./manifest.json">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./css/style.css">
+</head>
+<body>
+
+  <!-- Top Tactical Transceiver Instrument Bar -->
+  <header class="top-bar">
+    <div class="top-bar-inner">
+      <div class="brand-cluster">
+        <span class="brand-mark">ว.TAC</span>
+        <div class="brand-title-wrap">
+          <span class="brand-title">ระบบฝึกรหัสวิทยุสื่อสาร</span>
+          <div class="transceiver-status">
+            <span id="txStatusDot" class="status-dot" aria-hidden="true"></span>
+            <span id="txStatusLabel" class="freq-readout">CH-01 · 152.450 MHz · RX READY</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Desktop Navigation -->
+      <nav class="desktop-nav" aria-label="เมนูหลัก">
+        <button type="button" class="nav-tab active" data-view="directory">
+          <span class="nav-tab-code">M1</span>
+          <span>รวมคำสั่ง ว.</span>
+        </button>
+        <button type="button" class="nav-tab" data-view="scenarios">
+          <span class="nav-tab-code">M2</span>
+          <span>ตัวอย่างสื่อสาร</span>
+        </button>
+        <button type="button" class="nav-tab" data-view="drills">
+          <span class="nav-tab-code">M3</span>
+          <span>แบบฝึกหลายระดับ</span>
+        </button>
+        <button type="button" class="nav-tab" data-view="timed">
+          <span class="nav-tab-code">M4</span>
+          <span>ฝึกจับเวลาตอบ</span>
+        </button>
+      </nav>
+
+      <!-- Transceiver Audio & Night-Watch Toggles -->
+      <div class="instrument-actions">
+        <button type="button" id="audioToggleBtn" class="inst-btn" aria-pressed="true" title="เปิดหรือปิดเสียงคีย์วิทยุและเสียงอ่าน">
+          <span id="audioToggleIcon" class="mono">SQL:ON</span>
+          <span class="btn-text-desktop">เสียงวิทยุ</span>
+        </button>
+        <button type="button" id="themeToggleBtn" class="inst-btn" aria-pressed="false" title="สลับโหมดกลางวันและโหมดปฏิบัติการกลางคืน">
+          <span id="themeToggleLabel" class="mono">DAY</span>
+          <span class="btn-text-desktop">โหมดแสง</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Workspace -->
+  <main class="workspace">
+
+    <!-- ==================================================================
+         MODULE 1 : หน้าแรก รวมคำสั่งวอ (Code Directory, ว.16 & Phonetics)
+         ================================================================== -->
+    <section id="view-directory" class="view-panel active" aria-labelledby="heading-directory">
+      <div class="module-header">
+        <div>
+          <h1 id="heading-directory" class="module-title">ทำเนียบรหัส ว. วิทยุสื่อสาร</h1>
+          <p class="module-subtitle">คู่มืออ้างอิงรหัส ว. มาตรฐานราชการ ตำรวจ กู้ภัย และประชาชน พร้อมตัวอย่างประโยคถาม-ตอบและเสียงสังเคราะห์วิทยุ</p>
+        </div>
+        <div class="module-quick-stats">
+          <div class="stat-chip">
+            <span>รหัสทั้งหมด</span>
+            <strong id="statTotalCodes">52</strong>
+          </div>
+          <div class="stat-chip">
+            <span>รหัสหลักใช้บ่อย</span>
+            <strong id="statCoreCodes">26</strong>
+          </div>
+          <div class="stat-chip">
+            <span>ปักหมุดทบทวน</span>
+            <strong id="statBookmarkedCodes">0</strong>
+          </div>
+        </div>
+      </div>
+
+      <!-- Search & Filter Control Toolbar -->
+      <div class="control-toolbar">
+        <div class="search-row">
+          <div class="search-box">
+            <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <circle cx="11" cy="11" r="7"></circle>
+              <line x1="20" y1="20" x2="16.2" y2="16.2"></line>
+            </svg>
+            <input
+              type="search"
+              id="codeSearchInput"
+              class="search-input"
+              placeholder="ค้นหารหัส (เช่น ว.2, 40, 61) หรือความหมาย (เช่น อุบัติเหตุ, ความลับ, ถึงที่หมาย) [กด /]"
+              autocomplete="off"
+            >
+            <button type="button" id="clearSearchBtn" class="search-clear-btn" hidden>ล้างคำค้น</button>
+          </div>
+
+          <div class="sub-mode-tabs" role="tablist" aria-label="หมวดตารางอ้างอิง">
+            <button type="button" class="sub-mode-btn active" data-subview="codes">รหัส ว. ทั้งหมด</button>
+            <button type="button" class="sub-mode-btn" data-subview="wo16">ความชัดเจน ว.16 (1-5)</button>
+            <button type="button" class="sub-mode-btn" data-subview="phonetic">ขานอักษร ก-ฮ</button>
+          </div>
+        </div>
+
+        <div id="categoryFilterBar" class="category-pills" aria-label="กรองตามหมวดหมู่รหัส ว."></div>
+      </div>
+
+      <!-- Subview 1A : Code Directory + Right Inspector -->
+      <div id="subview-codes" class="directory-split">
+        <div class="code-table-container">
+          <div class="code-table-header">
+            <span>รหัส ว.</span>
+            <span>ความหมายและบริบทสนาม</span>
+            <span>หมวดหมู่</span>
+            <span class="u-text-right">ฟังเสียง / ปักหมุด</span>
+          </div>
+          <div id="codeTableBody" role="list"></div>
+        </div>
+
+        <!-- Sticky Inspector Panel (Drawer on Mobile) -->
+        <aside id="codeInspectorPanel" class="inspector-panel" aria-label="รายละเอียดการใช้งานรหัส ว.">
+          <div class="inspector-top">
+            <div>
+              <div id="inspCodeBadge" class="inspector-code-large">ว.2</div>
+              <div id="inspMeaningText" class="inspector-meaning-large">ได้ยินหรือไม่ / ตอบรับว่าได้ยินแล้ว</div>
+            </div>
+            <div class="u-flex-row">
+              <button type="button" id="inspBookmarkBtn" class="inst-btn" title="ปักหมุดรหัสนี้ไว้ทบทวน">ปักหมุด</button>
+              <button type="button" id="inspCloseMobileBtn" class="inst-btn u-hidden">ปิดหน้าต่าง</button>
+            </div>
+          </div>
+
+          <div class="inspector-body">
+            <div class="inspector-block">
+              <div class="inspector-label">
+                <span>บริบทการใช้งานจริง</span>
+                <span id="inspCategoryTag" class="mono">การติดต่อและสัญญาณ</span>
+              </div>
+              <p id="inspContextText" class="section-subtext"></p>
+            </div>
+
+            <div class="inspector-block">
+              <div class="inspector-label">
+                <span>ตัวอย่างการขานถาม-ตอบทางวิทยุ</span>
+                <span id="inspPairCode" class="mono">คู่รหัส: ว.16 / ว.8</span>
+              </div>
+              <div class="dialogue-pair">
+                <div class="dialogue-line">
+                  <div class="dialogue-role">สถานีเรียกขาน (ถาม/แจ้ง)</div>
+                  <div id="inspExampleCall"></div>
+                </div>
+                <div class="dialogue-line reply">
+                  <div class="dialogue-role">สถานีตอบรับ (ขานตอบ)</div>
+                  <div id="inspExampleReply"></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="inspector-block">
+              <div class="inspector-label">
+                <span>จุดสังเกตกันจำสับสน</span>
+              </div>
+              <p id="inspConfusionText" class="section-subtext"></p>
+            </div>
+
+            <button type="button" id="inspPlayAudioBtn" class="ptt-action-btn">
+              <span class="mono">[PTT]</span>
+              <span>กดคีย์ฟังเสียงขานรหัสและประโยคตัวอย่าง</span>
+            </button>
+
+            <button type="button" id="inspJumpDrillBtn" class="secondary-action-btn">
+              <span>ไปทดสอบความจำรหัสหมวดนี้ในแบบฝึกหัด</span>
+            </button>
+          </div>
+        </aside>
+      </div>
+
+      <!-- Subview 1B : ระดับความชัดเจนของสัญญาณ ว.16 (1-5) -->
+      <div id="subview-wo16" class="ref-grid-panel" hidden>
+        <div class="section-subbar">
+          <h2 class="section-heading">เกณฑ์การรายงานความชัดเจนของสัญญาณ (รหัส ว.16 ระดับ 1 ถึง 5)</h2>
+          <p class="section-subtext">ใช้ตอบกลับเมื่อถูกถามว่า "ว.2 หรือไม่ ขอทราบ ว.16" เพื่อแจ้งคุณภาพการรับฟังของเครื่องรับ</p>
+        </div>
+        <div id="wo16ListContainer"></div>
+      </div>
+
+      <!-- Subview 1C : การขานตัวอักษรไทยทางวิทยุ ก-ฮ -->
+      <div id="subview-phonetic" hidden>
+        <div class="section-subbar">
+          <h2 class="section-heading">มาตรฐานการขานพยัญชนะไทยทางวิทยุสื่อสาร (ก-ฮ)</h2>
+          <p class="section-subtext">ใช้เมื่อต้องแจ้งหมวดอักษรป้ายทะเบียนรถ ชื่อบุคคล หรือรหัสประจำตัว เพื่อป้องกันเสียงพยัญชนะกลืนกันในคลื่นวิทยุ</p>
+        </div>
+        <div id="phoneticGridContainer" class="phonetic-grid"></div>
+      </div>
+    </section>
+
+    <!-- ==================================================================
+         MODULE 2 : หน้าตัวอย่างการใช้ วอ สื่อสาร (Scenarios & Composer)
+         ================================================================== -->
+    <section id="view-scenarios" class="view-panel" aria-labelledby="heading-scenarios">
+      <div class="module-header">
+        <div>
+          <h1 id="heading-scenarios" class="module-title">ตัวอย่างการใช้วิทยุสื่อสารในสถานการณ์จริง</h1>
+          <p class="module-subtitle">ศึกษาระเบียบการพูดวิทยุ 4 ขั้นตอน ฟังตัวอย่างการโต้ตอบระหว่างแม่ข่ายและลูกข่าย และทดลองแต่งประโยควิทยุด้วยตนเอง</p>
+        </div>
+        <div class="module-quick-stats">
+          <button type="button" id="togglePlainTranslationBtn" class="inst-btn" aria-pressed="true">
+            <span>แสดงคำแปลภาษาพูดปกติ : เปิด</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 4-Step Standard Radio Protocol Strip -->
+      <div id="protocolStepsContainer" class="protocol-strip" aria-label="โครงสร้างประโยควิทยุมาตรฐาน 4 ขั้นตอน"></div>
+
+      <!-- Scenario Split Workspace -->
+      <div class="scenario-workspace">
+        <div id="scenarioListNav" class="scenario-list" role="tablist" aria-label="เลือกสถานการณ์ตัวอย่าง"></div>
+
+        <div class="scenario-stage">
+          <div class="scenario-stage-header">
+            <div>
+              <div class="rx-header-row">
+                <span id="scStageCode" class="code-badge">SC-01</span>
+                <span id="scStageChannel" class="mono freq-readout">CH-01 · 152.450 MHz</span>
+              </div>
+              <h2 id="scStageTitle" class="section-heading"></h2>
+              <p id="scStageSummary" class="section-subtext"></p>
+            </div>
+            <div class="scenario-controls">
+              <button type="button" id="playFullScenarioBtn" class="ptt-action-btn btn-auto">
+                <span class="mono">[PLAY ALL]</span>
+                <span>เล่นเสียงสนทนาต่อเนื่อง</span>
+              </button>
+              <button type="button" id="stopScenarioAudioBtn" class="secondary-action-btn btn-auto">
+                <span>หยุดเสียง</span>
+              </button>
+            </div>
+          </div>
+
+          <div id="scenarioTransmissionLog" class="transmission-log"></div>
+        </div>
+      </div>
+
+      <!-- Interactive Tactical Sentence Composer -->
+      <div class="composer-box">
+        <h2 class="section-heading">เครื่องมือฝึกแต่งประโยคขานวิทยุมาตรฐาน (Tactical Callsign Composer)</h2>
+        <p class="section-subtext">เลือกสถานีปลายทาง สถานีผู้ส่ง และภารกิจ เพื่อดูการเรียงประโยคที่ถูกระเบียบพร้อมกดฟังเสียงออกอากาศ</p>
+
+        <div class="composer-grid">
+          <div class="form-field">
+            <label for="compReceiver">1. สถานีปลายทาง (ผู้รับ)</label>
+            <select id="compReceiver" class="form-select">
+              <option value="ศูนย์สั่งการ">ศูนย์สั่งการ (แม่ข่าย)</option>
+              <option value="สายตรวจ 101">สายตรวจ 101</option>
+              <option value="กู้ชีพ 201">กู้ชีพ 201</option>
+              <option value="จุดตรวจที่ 3">จุดตรวจที่ 3</option>
+              <option value="ลูกข่ายทุกสถานี">ลูกข่ายทุกสถานี</option>
+            </select>
+          </div>
+          <div class="form-field">
+            <label for="compSender">2. สถานีต้นทาง (ผู้ส่ง)</label>
+            <select id="compSender" class="form-select">
+              <option value="สายตรวจ 104">สายตรวจ 104</option>
+              <option value="ศูนย์สั่งการ">ศูนย์สั่งการ</option>
+              <option value="กู้ภัย 102">กู้ภัย 102</option>
+              <option value="ชุดเคลื่อนที่เร็ว 01">ชุดเคลื่อนที่เร็ว 01</option>
+            </select>
+          </div>
+          <div class="form-field">
+            <label for="compTemplate">3. สถานการณ์และรหัส ว. ที่ต้องการแจ้ง</label>
+            <select id="compTemplate" class="form-select">
+              <option value="ขอเช็กสัญญาณ ว.2 ว.16 ขณะนี้ ว.10 หน้าตลาดเทศบาล เหตุการณ์ปกติ">เช็กสัญญาณ ว.2 / ว.16 และแจ้งประจำจุด ว.10</option>
+              <option value="ว.2 ทราบ ว.0 ขณะนี้กำลัง ว.21 จากฐาน ว.25 จุดเกิดเหตุ ใช้ ว.24 ประมาณ 5 นาที">รับคำสั่ง ว.0 และแจ้งเดินทาง ว.21 / ว.25 / ว.24</option>
+              <option value="แจ้ง ว.22 จุดเกิดเหตุ ว.40 พบผู้บาดเจ็บ ว.30 จำนวน 2 ราย ขอรถพยาบาล ว.7 ด่วน">ถึงจุดอุบัติเหตุ ว.40 แจ้งจำนวน ว.30 และขอ ว.7</option>
+              <option value="ขณะนี้ติด ว.60 และข้อมูลเป็น ว.5 ขออนุญาตประสานทาง ว.13 แทน">แจ้งติดบุคคลภายนอก ว.60 / ความลับ ว.5 ขอโทร ว.13</option>
+              <option value="เสร็จสิ้นภารกิจผลัดเวร ขอแจ้ง ว.14 และ ว.25 กลับ ว.63 ว.61">แจ้งเลิกงาน ว.14 กลับบ้านพัก ว.63 และขอบคุณ ว.61</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="composer-output">
+          <div>
+            <div class="composer-label">ประโยคขานวิทยุที่ถูกต้องตามระเบียบ :</div>
+            <div id="composerResultText" class="tx-radio-text"></div>
+          </div>
+          <button type="button" id="composerSpeakBtn" class="ptt-action-btn btn-auto">
+            <span class="mono">[PTT TX]</span>
+            <span>กดคีย์ทดลองออกอากาศ</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================================================================
+         MODULE 3 : หน้าแบบฝึกหัด วอ หลายระดับ (Multi-Level Tactical Drills)
+         ================================================================== -->
+    <section id="view-drills" class="view-panel" aria-labelledby="heading-drills">
+      <div class="module-header">
+        <div>
+          <h1 id="heading-drills" class="module-title">แบบฝึกหัดรหัส ว. แบ่งระดับความชำนาญ</h1>
+          <p class="module-subtitle">ฝึกฝนตั้งแต่ระดับพื้นฐาน รหัสคู่แฝดที่มักสับสน การโต้ตอบสถานการณ์จำลอง ไปจนถึงการถอดรหัสข้อความวิทยุ</p>
+        </div>
+        <div class="module-quick-stats">
+          <div class="stat-chip">
+            <span>ตอบถูกสะสม</span>
+            <strong id="drillTotalMastered">0</strong>
+          </div>
+          <div class="stat-chip">
+            <span>สถิติต่อเนื่อง (Streak)</span>
+            <strong id="drillCurrentStreak">0</strong>
+          </div>
+          <button type="button" id="drillWeakCodesBtn" class="inst-btn">
+            <span>ฝึกเฉพาะรหัสที่ปักหมุด/เคยผิด</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 4-Level Selector Cards -->
+      <div id="drillLevelSelector" class="level-selector-bar" role="tablist" aria-label="เลือกระดับแบบฝึกหัด"></div>
+
+      <!-- Active Drill Console -->
+      <div class="drill-console">
+        <div class="drill-console-top">
+          <div class="u-flex-row">
+            <span id="drillActiveLevelBadge" class="code-badge">LVL-01</span>
+            <strong id="drillActiveLevelTitle">ระดับ 1 : พื้นฐานลูกข่าย</strong>
+            <span id="drillQuestionCounter" class="mono freq-readout">ข้อที่ 1 / 10</span>
+          </div>
+
+          <div class="u-flex-row">
+            <button type="button" id="toggleInputModeBtn" class="inst-btn" aria-pressed="false">
+              <span>โหมดตอบ : ตัวเลือก 4 ข้อ</span>
+            </button>
+            <button type="button" id="restartDrillBtn" class="inst-btn">
+              <span>เริ่มชุดใหม่</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="progress-track" aria-hidden="true">
+          <div id="drillProgressFill" class="progress-fill"></div>
+        </div>
+
+        <div id="drillStageContent" class="drill-stage"></div>
+      </div>
+    </section>
+
+    <!-- ==================================================================
+         MODULE 4 : แบบฝึกจับเวลาในการตอบรหัส วอ (Timed Reflex Trainer)
+         ================================================================== -->
+    <section id="view-timed" class="view-panel" aria-labelledby="heading-timed">
+      <div class="module-header">
+        <div>
+          <h1 id="heading-timed" class="module-title">ฝึกจับเวลาตอบสนองรหัส ว. (Tactical Reflex Timer)</h1>
+          <p class="module-subtitle">ฝึกตัดสินใจแปลรหัสและขานตอบภายใต้ความกดดันด้านเวลา วัดความเร็วตอบสนองระดับมิลลิวินาที (รองรับปุ่มคีย์บอร์ด 1-4)</p>
+        </div>
+        <div class="module-quick-stats">
+          <div class="stat-chip">
+            <span>สถิติสูงสุด (Best Score)</span>
+            <strong id="timedBestScore">0</strong>
+          </div>
+          <div class="stat-chip">
+            <span>เวลาตอบเฉลี่ยดีสุด</span>
+            <strong id="timedBestAvgMs">0.00s</strong>
+          </div>
+        </div>
+      </div>
+
+      <!-- Timed Mode Selector -->
+      <div class="timer-mode-grid" role="tablist" aria-label="เลือกโหมดจับเวลา">
+        <button type="button" class="level-select-btn active" data-timemode="sprint60">
+          <div class="level-btn-meta">
+            <span>MODE-A</span>
+            <span>60.0 วินาที</span>
+          </div>
+          <div class="level-btn-title">Sprint 60 วินาที (Rapid Fire)</div>
+          <div class="level-btn-desc">ตอบรหัส ว. ให้ได้จำนวนข้อมากที่สุดและแม่นยำที่สุดภายในเวลา 60 วินาที</div>
+        </button>
+
+        <button type="button" class="level-select-btn" data-timemode="reflex5">
+          <div class="level-btn-meta">
+            <span>MODE-B</span>
+            <span>5.0 วินาที / ข้อ</span>
+          </div>
+          <div class="level-btn-title">Reflex 5 วินาทีต่อข้อ (15 ข้อ)</div>
+          <div class="level-btn-desc">จำลองการถูกแม่ข่ายเรียกขานกะทันหัน ต้องตัดสินใจกดตอบภายใน 5 วินาทีต่อข้อ</div>
+        </button>
+
+        <button type="button" class="level-select-btn" data-timemode="survival">
+          <div class="level-btn-meta">
+            <span>MODE-C</span>
+            <span>ห้ามผิดเกิน 3 ครั้ง</span>
+          </div>
+          <div class="level-btn-title">Survival ไร้พ่าย (Sudden Death)</div>
+          <div class="level-btn-desc">เวลาต่อข้อจะบีบเร็วขึ้นเรื่อยๆ จาก 6 วินาที เหลือ 2.5 วินาที ทดสอบขีดจำกัดความแม่นยำ</div>
+        </button>
+      </div>
+
+      <!-- Chronometer Instrument Readout -->
+      <div class="chronometer-hud">
+        <div class="chrono-cell">
+          <span class="chrono-label">เวลาคงเหลือ (TIMER)</span>
+          <span id="chronoTimeDisplay" class="chrono-val">60.00s</span>
+        </div>
+        <div class="chrono-cell">
+          <span class="chrono-label">คะแนนปฏิบัติการ (SCORE)</span>
+          <span id="chronoScoreDisplay" class="chrono-val">0</span>
+        </div>
+        <div class="chrono-cell">
+          <span class="chrono-label">ความเร็วตอบเฉลี่ย (AVG REACTION)</span>
+          <span id="chronoAvgDisplay" class="chrono-val">0.00s</span>
+        </div>
+        <div class="chrono-cell">
+          <span class="chrono-label">ตัวคูณต่อเนื่อง (COMBO)</span>
+          <span id="chronoComboDisplay" class="chrono-val">x1</span>
+        </div>
+      </div>
+
+      <div class="timer-bar-wrap" aria-hidden="true">
+        <div id="chronoBarFill" class="timer-bar-fill"></div>
+      </div>
+
+      <!-- Timed Interactive Arena -->
+      <div class="drill-console">
+        <div id="timedArenaStage" class="drill-stage"></div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Mobile Drawer Backdrop -->
+  <div id="mobileDrawerBackdrop" class="mobile-drawer-backdrop"></div>
+
+  <!-- Mobile Sticky Bottom Navigation (4 Modules) -->
+  <nav class="mobile-bottom-nav" aria-label="เมนูหลักสำหรับมือถือ">
+    <div class="mobile-nav-grid">
+      <button type="button" class="mobile-nav-btn active" data-view="directory">
+        <span class="mono">M1</span>
+        <span>คำสั่ง ว.</span>
+      </button>
+      <button type="button" class="mobile-nav-btn" data-view="scenarios">
+        <span class="mono">M2</span>
+        <span>ตัวอย่าง</span>
+      </button>
+      <button type="button" class="mobile-nav-btn" data-view="drills">
+        <span class="mono">M3</span>
+        <span>แบบฝึกหัด</span>
+      </button>
+      <button type="button" class="mobile-nav-btn" data-view="timed">
+        <span class="mono">M4</span>
+        <span>จับเวลา</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- Scripts (Relative paths for 100% GitHub Pages & Local Compatibility) -->
+  <script src="./js/data-codes.js"></script>
+  <script src="./js/data-scenarios.js"></script>
+  <script src="./js/data-drills.js"></script>
+  <script src="./js/audio.js"></script>
+  <script src="./js/app.js"></script>
+</body>
+</html>
