@@ -286,13 +286,27 @@
         item.code.toLowerCase().includes(q) ||
         item.num.toLowerCase() === cleanQ ||
         (/^\d+$/.test(cleanQ) && item.num.toLowerCase() === cleanQ.padStart(2, '0'));
-      const meaningMatch = item.meaning.toLowerCase().includes(q) || item.shortMeaning.toLowerCase().includes(q);
-      const contextMatch =
-        item.context.toLowerCase().includes(q) ||
-        item.exampleCall.toLowerCase().includes(q) ||
-        (item.exampleReply && item.exampleReply.toLowerCase().includes(q)) ||
-        (item.confusionNote && item.confusionNote.toLowerCase().includes(q));
-      return codeMatch || meaningMatch || contextMatch;
+      if (codeMatch) return true;
+
+      const haystack = [
+        item.code,
+        item.meaning,
+        item.shortMeaning,
+        item.context,
+        item.exampleCall,
+        item.exampleReply || '',
+        item.confusionNote || '',
+        item.pairCode || ''
+      ].join(' ').toLowerCase();
+
+      const haystackNoSpace = haystack.replace(/\s+/g, '');
+      const qNoSpace = q.replace(/\s+/g, '');
+      if (haystack.includes(q) || haystackNoSpace.includes(qNoSpace)) {
+        return true;
+      }
+
+      const tokens = q.split(/\s+/).filter(Boolean);
+      return tokens.length > 1 && tokens.every(tok => haystack.includes(tok));
     });
 
     if (state.selectedCategory === 'military') {
