@@ -44,7 +44,7 @@
       currentStreak: 0,
       bestTimedScore: 0,
       bestAvgReactionMs: 0,
-      levelBest: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }
+      levelBest: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 }
     },
 
     // Timed Reflex Trainer state
@@ -99,7 +99,7 @@
       const savedStats = JSON.parse(localStorage.getItem(STORAGE_KEYS.stats) || 'null');
       if (savedStats && typeof savedStats === 'object') {
         state.stats = Object.assign(state.stats, savedStats);
-        state.stats.levelBest = Object.assign({ 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }, savedStats.levelBest || {});
+        state.stats.levelBest = Object.assign({ 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 }, savedStats.levelBest || {});
       }
     } catch (e) {
       // Fallback silently if storage is restricted
@@ -224,6 +224,7 @@
     if (catId === 'core') return codes.filter(c => c.isCore).length;
     if (catId === 'bookmarked') return state.bookmarks.size;
     if (catId === 'military') return codes.filter(c => c.category === 'military' || c.isMilitary === true).length;
+    if (catId === 'incident_code') return codes.filter(c => c.category === 'incident_code' || c.isIncidentCode === true).length;
     return codes.filter(c => c.category === catId).length;
   }
 
@@ -258,6 +259,8 @@
         renderCodeTable();
         if (state.selectedCategory === 'military' && !String(state.selectedCode).startsWith('ท.')) {
           selectCodeForInspector('ท.01', false);
+        } else if (state.selectedCategory === 'incident_code' && !String(state.selectedCode).startsWith('เหตุ ')) {
+          selectCodeForInspector('เหตุ 511', false);
         }
       });
     });
@@ -270,18 +273,20 @@
       if (state.selectedCategory === 'core' && !item.isCore) return false;
       if (state.selectedCategory === 'bookmarked' && !state.bookmarks.has(item.code)) return false;
       if (state.selectedCategory === 'military' && !(item.category === 'military' || item.isMilitary === true)) return false;
+      if (state.selectedCategory === 'incident_code' && !(item.category === 'incident_code' || item.isIncidentCode === true)) return false;
       if (
         state.selectedCategory !== 'all' &&
         state.selectedCategory !== 'core' &&
         state.selectedCategory !== 'bookmarked' &&
         state.selectedCategory !== 'military' &&
+        state.selectedCategory !== 'incident_code' &&
         item.category !== state.selectedCategory
       ) {
         return false;
       }
 
       if (!q) return true;
-      const cleanQ = q.replace(/^(?:ว|ท)\.?/, '');
+      const cleanQ = q.replace(/^(?:ว\.?|ท\.?|เหตุ\s*)/, '');
       const codeMatch =
         item.code.toLowerCase().includes(q) ||
         item.num.toLowerCase() === cleanQ ||
@@ -314,6 +319,12 @@
         const aMil = a.category === 'military' ? 0 : 1;
         const bMil = b.category === 'military' ? 0 : 1;
         return aMil - bMil;
+      });
+    } else if (state.selectedCategory === 'incident_code') {
+      list.sort((a, b) => {
+        const aInc = a.category === 'incident_code' ? 0 : 1;
+        const bInc = b.category === 'incident_code' ? 0 : 1;
+        return aInc - bInc;
       });
     }
 
@@ -625,13 +636,17 @@
      4. Module 2 : ตัวอย่างการใช้ วอ สื่อสาร (Scenarios & Composer)
      ======================================================================== */
 
+  function normalizeInlineCodeKey(rawCode) {
+    return String(rawCode || '').trim().replace(/^เหตุ\s+/, 'เหตุ ');
+  }
+
   function buildColorMapForText(text) {
     const slotMap = {};
     let slotIndex = 0;
     const raw = String(text == null ? '' : text);
-    const matches = raw.matchAll(/((?:ว|ท)\.\d+)/g);
+    const matches = raw.matchAll(/((?:ว|ท)\.\d+|เหตุ\s+\d+)/g);
     for (const match of matches) {
-      const code = match[1];
+      const code = normalizeInlineCodeKey(match[1]);
       if (!Object.prototype.hasOwnProperty.call(slotMap, code)) {
         slotMap[code] = 'wo-slot-' + (slotIndex % 5);
         slotIndex++;
@@ -643,11 +658,12 @@
   function highlightWoCodesInline(text, slotMap) {
     const codes = Array.isArray(window.WO_CODES) ? window.WO_CODES : [];
     const activeMap = slotMap || buildColorMapForText(text);
-    return escapeHtml(text).replace(/((?:ว|ท)\.\d+)/g, (match) => {
-      const codeObj = codes.find(c => c.code === match);
-      const titleAttr = codeObj ? `${codeObj.code} : ${codeObj.shortMeaning}` : match;
-      const slotClass = activeMap[match] || 'wo-slot-0';
-      const safeMatch = escapeHtml(match);
+    return escapeHtml(text).replace(/((?:ว|ท)\.\d+|เหตุ\s+\d+)/g, (match) => {
+      const normCode = normalizeInlineCodeKey(match);
+      const codeObj = codes.find(c => c.code === normCode);
+      const titleAttr = codeObj ? `${codeObj.code} : ${codeObj.shortMeaning}` : normCode;
+      const slotClass = activeMap[normCode] || 'wo-slot-0';
+      const safeMatch = escapeHtml(normCode);
       return `<button type="button" class="inline-wo-btn ${slotClass}" data-inline-code="${safeMatch}" title="${escapeHtml(titleAttr)}">${safeMatch}</button>`;
     });
   }
@@ -656,7 +672,7 @@
     const codes = Array.isArray(window.WO_CODES) ? window.WO_CODES : [];
     const raw = String(radioText == null ? '' : radioText);
     const activeMap = slotMap || buildColorMapForText(raw);
-    const matches = raw.matchAll(/((?:ว|ท)\.\d+)/g);
+    const matches = raw.matchAll(/((?:ว|ท)\.\d+|เหตุ\s+\d+)/g);
     let lastIndex = 0;
     let result = '';
 
@@ -665,7 +681,7 @@
       if (matchIdx > lastIndex) {
         result += escapeHtml(raw.slice(lastIndex, matchIdx));
       }
-      const code = match[1];
+      const code = normalizeInlineCodeKey(match[1]);
       const codeObj = codes.find(c => c.code === code);
       const meaningText = codeObj ? codeObj.shortMeaning : code;
       const slotClass = activeMap[code] || 'wo-slot-0';
@@ -690,7 +706,7 @@
       return radioText ? autoDecodeRadioSentence(radioText, activeMap) : escapeHtml(rawPlain);
     }
 
-    const matches = rawPlain.matchAll(/\{\{((?:ว|ท)\.\d+)\|([^}]+)\}\}/g);
+    const matches = rawPlain.matchAll(/\{\{((?:ว|ท)\.\d+|เหตุ\s+\d+)\|([^}]+)\}\}/g);
     let lastIndex = 0;
     let result = '';
 
@@ -699,7 +715,7 @@
       if (matchIdx > lastIndex) {
         result += escapeHtml(rawPlain.slice(lastIndex, matchIdx));
       }
-      const code = match[1];
+      const code = normalizeInlineCodeKey(match[1]);
       const meaning = match[2];
       if (!activeMap[code]) {
         const nextSlot = Object.keys(activeMap).length % 5;
@@ -967,6 +983,10 @@
       [
         'พบอาการ ว.609 ในช่องหลัก ขอพิสูจน์ตัวตน ท.14 ด้วย ว.621 แล้วสลับ ว.602 ไปช่องสำรอง ว.32 พร้อมรักษาวินัย ท.13',
         'ชายแดน : ต้านคลื่นรบกวน ท.14 ย้ายช่อง ว.32 และเงียบวิทยุ ท.13'
+      ],
+      [
+        'แจ้งด่วน ว.9 ตรวจพบวัตถุต้องสงสัย เหตุ 510 บริเวณหน้าด่านตรวจ และเกิด เหตุ 511 ลูกแรกขึ้นแล้ว ขอให้กั้นเขต ว.17 และเพิ่มความระมัดระวัง ว.69 ชุด EOD กำลังเข้าตรวจสอบเพื่อยืนยัน เหตุ 512',
+        'วัตถุระเบิด : แจ้งพบวัตถุต้องสงสัย เหตุ 510 / เกิดระเบิด เหตุ 511 / เก็บกู้ เหตุ 512'
       ]
     ]);
   }
@@ -1107,6 +1127,67 @@
       const extraPool = shuffleArray(allCodes.filter(c => !c.isCore)).slice(0, Math.max(0, 10 - decItems.length));
       const extraQuestions = extraPool.map(item => createCodeDrillQuestion(item, allCodes, false));
       return [...decItems, ...extraQuestions].slice(0, 10);
+    }
+
+    if (levelId === 6) {
+      // Level 6 : รหัสแจ้งเหตุ 100-605 (เน้น เหตุ 510 / 511 / 512 วัตถุระเบิด)
+      const incPoolRaw = allCodes.filter(
+        c => c.category === 'incident_code' || c.isIncidentCode || c.code === 'ว.48' || c.code === 'ท.12'
+      );
+      const incCodePool = incPoolRaw.length > 0 ? incPoolRaw : allCodes;
+
+      const allScenarios = Array.isArray(window.SCENARIO_DRILL_QUESTIONS) ? window.SCENARIO_DRILL_QUESTIONS : [];
+      const incScenariosRaw = allScenarios.filter(s => s.isIncidentCode);
+      const incScenarioPool = incScenariosRaw.length > 0 ? incScenariosRaw : allScenarios;
+
+      const allDecoders = Array.isArray(window.DECODER_DRILL_QUESTIONS) ? window.DECODER_DRILL_QUESTIONS : [];
+      const incDecodersRaw = allDecoders.filter(d => d.isIncidentCode);
+      const incDecoderPool = incDecodersRaw.length > 0 ? incDecodersRaw : allDecoders;
+
+      const mapIncDecoderQuestion = (dec) => {
+        const optionObjects = dec.options.map((text, idx) => ({ text, isCorrect: idx === dec.correctIndex }));
+        const shuffledOptions = shuffleArray(optionObjects);
+        return {
+          type: 'decoder',
+          code: dec.targetCode,
+          contextTag: 'ถอดรหัสแจ้งเหตุ 100-605 / วัตถุระเบิด',
+          incomingText: dec.transmission,
+          prompt: state.drillInputMode === 'typein' ? dec.targetPrompt : dec.question,
+          options: shuffledOptions.map(o => o.text),
+          correctIndex: shuffledOptions.findIndex(o => o.isCorrect),
+          expectedCode: dec.targetCode,
+          explanation: dec.explanation
+        };
+      };
+
+      const mapIncScenarioQuestion = (sc) => {
+        const optionObjects = sc.options.map((text, idx) => ({ text, isCorrect: idx === sc.correctIndex }));
+        const shuffledOptions = shuffleArray(optionObjects);
+        return {
+          type: 'scenario',
+          code: sc.focusCode,
+          contextTag: `สายเรียกเข้าแจ้งเหตุ : ${sc.caller}`,
+          incomingText: sc.incoming,
+          prompt: sc.prompt,
+          options: shuffledOptions.map(o => o.text),
+          correctIndex: shuffledOptions.findIndex(o => o.isCorrect),
+          expectedCode: sc.focusCode,
+          explanation: sc.explanation
+        };
+      };
+
+      if (state.drillInputMode === 'typein') {
+        const decPart = shuffleArray(incDecoderPool).slice(0, 3).map(mapIncDecoderQuestion);
+        const codeNeed = Math.max(0, 10 - decPart.length);
+        const codePart = shuffleArray(incCodePool).slice(0, codeNeed).map(item => createCodeDrillQuestion(item, incCodePool, false));
+        return shuffleArray([...codePart, ...decPart]).slice(0, 10);
+      }
+
+      const scenarioQuestions = shuffleArray(incScenarioPool).slice(0, 3).map(mapIncScenarioQuestion);
+      const decoderQuestions = shuffleArray(incDecoderPool).slice(0, 3).map(mapIncDecoderQuestion);
+      const codeNeed = Math.max(0, 10 - scenarioQuestions.length - decoderQuestions.length);
+      const codeQuestions = shuffleArray(incCodePool).slice(0, codeNeed).map((item, idx) => createCodeDrillQuestion(item, incCodePool, idx % 2 === 0));
+      return [...codeQuestions, ...scenarioQuestions, ...decoderQuestions].slice(0, 10);
     }
 
     // Level 5 : Military & Border Patrol Tactical Ops (ทหาร/ชายแดน)
@@ -1315,7 +1396,7 @@
             type="text"
             id="drillTypeinInput"
             class="typein-input"
-            placeholder="พิมพ์รหัส เช่น ว.40, ท.05 หรือ 40 แล้วกด Enter"
+            placeholder="พิมพ์รหัส เช่น ว.40, ท.05, เหตุ 511 หรือ 511 แล้วกด Enter"
             required
           >
           <button type="button" id="drillTypeinSubmitBtn" class="ptt-action-btn btn-auto">
@@ -1383,6 +1464,9 @@
 
   function normalizeWoCodeInput(inputStr) {
     const clean = String(inputStr).trim().replace(/\s+/g, '');
+    if (/^เหตุ\.?\d+$/.test(clean)) {
+      return 'เหตุ ' + clean.replace(/^เหตุ\.?/, '');
+    }
     if (/^(?:ท|t|T)\.?\d+$/.test(clean)) {
       const num = clean.replace(/^(?:ท|t|T)\.?/, '');
       return 'ท.' + num.padStart(2, '0');
@@ -1411,6 +1495,13 @@
       'ท.' + cleanDigits.padStart(2, '0') === q.expectedCode
     ) {
       normalizedUser = 'ท.' + cleanDigits.padStart(2, '0');
+    } else if (
+      q.expectedCode &&
+      q.expectedCode.startsWith('เหตุ ') &&
+      /^\d+$/.test(cleanDigits) &&
+      'เหตุ ' + cleanDigits === q.expectedCode
+    ) {
+      normalizedUser = 'เหตุ ' + cleanDigits;
     }
     const isCorrect = normalizedUser === q.expectedCode;
 
@@ -1540,7 +1631,7 @@
           <button type="button" id="summaryRetryBtn" class="ptt-action-btn btn-auto">
             <span>ฝึกซ้ำระดับนี้อีกครั้ง</span>
           </button>
-          ${state.drillLevel < 5 ? `
+          ${state.drillLevel < 6 ? `
             <button type="button" id="summaryNextLevelBtn" class="secondary-action-btn btn-auto">
               <span>ไปต่อระดับที่ ${state.drillLevel + 1}</span>
             </button>
@@ -1560,7 +1651,7 @@
     if (nextLvlBtn) {
       nextLvlBtn.addEventListener('click', () => {
         state.drillWeakOnly = false;
-        state.drillLevel = Math.min(5, state.drillLevel + 1);
+        state.drillLevel = Math.min(6, state.drillLevel + 1);
         startDrillSession();
       });
     }
